@@ -6,13 +6,13 @@ from PIL import Image
 
 from config import CHECKPOINT_PATH, CLASS_NAMES, NUM_CLASSES
 from data import get_prediction_transform
-from model import LeNetCIFAR10
+from model import VGG16CIFAR10
 from utils import get_device, load_checkpoint
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Dự đoán một ảnh bằng LeNet CIFAR-10."
+        description="Dự đoán một ảnh bằng VGG16 CIFAR-10."
     )
     parser.add_argument(
         "--image",
@@ -38,7 +38,10 @@ def predict(image_path: Path, top_k: int) -> None:
 
     device = get_device()
 
-    model = LeNetCIFAR10(num_classes=NUM_CLASSES).to(device)
+    model = VGG16CIFAR10(
+        num_classes=NUM_CLASSES,
+        dropout=0.5,
+    ).to(device)
     load_checkpoint(
         path=CHECKPOINT_PATH,
         model=model,
