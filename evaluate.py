@@ -8,7 +8,7 @@ from config import (
 )
 from data import create_test_loader
 from engine import evaluate_detailed
-from model import LeNetCIFAR10
+from model import VGG16CIFAR10
 from utils import (
     ensure_directories,
     get_device,
@@ -26,7 +26,10 @@ def main() -> None:
 
     test_loader = create_test_loader(device)
 
-    model = LeNetCIFAR10(num_classes=NUM_CLASSES).to(device)
+    model = VGG16CIFAR10(
+        num_classes=NUM_CLASSES,
+        dropout=0.5,
+    ).to(device)
     checkpoint = load_checkpoint(
         path=CHECKPOINT_PATH,
         model=model,
