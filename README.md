@@ -1,25 +1,20 @@
-# Phân loại CIFAR-10 bằng LeNet và PyTorch
+# Phân loại CIFAR-10 bằng VGG16-BN và PyTorch
 
-Project hoàn chỉnh gồm:
+Project sử dụng VGG16-BN được điều chỉnh cho ảnh CIFAR-10 kích thước `32 x 32`, với 10 lớp đầu ra. Quy trình gồm:
 
-- Tự động tải CIFAR-10.
-- Chia 50.000 ảnh train gốc thành:
-  - 45.000 ảnh train.
-  - 5.000 ảnh validation.
+- Chia 50.000 ảnh train thành 45.000 ảnh train và 5.000 ảnh validation.
 - Giữ nguyên 10.000 ảnh test.
 - Data augmentation cho tập train.
-- Huấn luyện LeNet.
-- Tự động giảm learning rate khi validation loss không cải thiện.
-- Early stopping.
-- Lưu checkpoint tốt nhất.
-- Vẽ loss và accuracy.
+- Batch normalization trong các convolution block.
+- Giảm learning rate khi validation loss không cải thiện và early stopping.
+- Lưu checkpoint tốt nhất, lịch sử train, biểu đồ và kết quả đánh giá.
 - Đánh giá accuracy tổng, accuracy từng lớp và confusion matrix.
-- Dự đoán một ảnh bên ngoài.
+- Dự đoán một ảnh bên ngoài với xác suất và `--top-k`.
 
 ## 1. Cấu trúc thư mục
 
 ```text
-cifar10_lenet_project/
+cifar10_VGG_project/
 ├── config.py
 ├── data.py
 ├── model.py
@@ -28,29 +23,28 @@ cifar10_lenet_project/
 ├── train.py
 ├── evaluate.py
 ├── predict.py
-├── export_sample.py
 ├── requirements.txt
 ├── data/
+│   └── cifar-10-batches-py/
 └── outputs/
 ```
+
+Thư mục `data/cifar-10-batches-py/` phải chứa bộ CIFAR-10 dạng gốc gồm `batches.meta`, `data_batch_1` đến `data_batch_5` và `test_batch`.
 
 ## 2. Ý nghĩa từng file
 
 | File | Chức năng |
 |---|---|
-| `config.py` | Lưu đường dẫn, batch size, epoch, learning rate và tên lớp |
-| `data.py` | Tải dữ liệu, augmentation, chia train/validation, tạo DataLoader |
-| `model.py` | Khai báo mô hình LeNet |
+| `config.py` | Lưu cấu hình, đường dẫn, batch size, epoch, learning rate và tên lớp |
+| `data.py` | Đọc dữ liệu cục bộ, augmentation, chia train/validation và tạo DataLoader |
+| `model.py` | Khai báo mô hình VGG16-BN cho CIFAR-10 |
 | `engine.py` | Chứa vòng lặp train và evaluate |
 | `utils.py` | Seed, thiết bị, checkpoint, biểu đồ và file kết quả |
-| `train.py` | Huấn luyện toàn bộ mô hình |
-| `evaluate.py` | Đánh giá model tốt nhất trên test set |
+| `train.py` | Huấn luyện mô hình |
+| `evaluate.py` | Đánh giá checkpoint tốt nhất trên test set |
 | `predict.py` | Dự đoán một ảnh bên ngoài |
-| `export_sample.py` | Xuất một ảnh test mẫu để thử dự đoán |
 
 ## 3. Tạo môi trường ảo trên Windows
-
-Mở Terminal tại thư mục project:
 
 ```powershell
 python -m venv .venv
@@ -59,87 +53,78 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Nếu bạn đã cài PyTorch đúng theo CUDA của máy, chỉ cần cài các thư viện còn thiếu.
+## 4. Chuẩn bị dữ liệu
 
-## 4. Kiểm tra cấu trúc mô hình
+Dữ liệu CIFAR-10 đã được tải từ Kaggle và giải nén theo đúng cấu trúc sau:
+
+```text
+data/
+└── cifar-10-batches-py/
+    ├── batches.meta
+    ├── data_batch_1
+    ├── data_batch_2
+    ├── data_batch_3
+    ├── data_batch_4
+    ├── data_batch_5
+    └── test_batch
+```
+
+Project chỉ đọc dữ liệu cục bộ bằng `download=False`; chương trình không tự tải dữ liệu khi chạy.
+
+## 5. Kiểm tra cấu trúc mô hình
 
 ```powershell
 python model.py
 ```
 
-Đầu ra mong đợi:
+Mô hình nhận tensor `3 x 32 x 32` và trả về 10 logits cho mỗi ảnh.
 
-```text
-Input shape : (8, 3, 32, 32)
-Output shape: (8, 10)
-```
-
-## 5. Train mô hình
+## 6. Huấn luyện
 
 ```powershell
 python train.py
 ```
 
-Lần chạy đầu tiên, `torchvision` sẽ tự tải CIFAR-10 vào thư mục `data/`.
-
-Trong quá trình train, chương trình in:
+Checkpoint có validation loss tốt nhất được lưu tại:
 
 ```text
-Epoch 01/30 | LR: ... | Train loss: ... | Train acc: ... | Val loss: ... | Val acc: ...
+outputs/best_vgg16_cifar10.pt
 ```
 
-Model có validation loss tốt nhất được lưu tại:
+Các chỉ số và biểu đồ chỉ được tạo sau khi quá trình train thực sự chạy. README này không giả định trước kết quả accuracy.
 
-```text
-outputs/best_lenet_cifar10.pt
-```
-
-## 6. Đánh giá test set
+## 7. Đánh giá test set
 
 ```powershell
 python evaluate.py
 ```
 
-Chương trình in:
-
-- Test loss.
-- Test accuracy.
-- Accuracy của từng lớp.
-
-Đồng thời tạo:
+Kết quả được lưu sau khi đánh giá vào:
 
 ```text
-outputs/confusion_matrix.png
 outputs/test_metrics.json
+outputs/confusion_matrix.png
 ```
 
-## 7. Dự đoán một ảnh
-
-Trước tiên có thể xuất một ảnh test mẫu:
+## 8. Dự đoán một ảnh
 
 ```powershell
-python export_sample.py
+python predict.py --image "duong_dan_anh.png"
 ```
 
-Sau đó chạy:
-
-```powershell
-python predict.py --image "outputs/sample_cat.png"
-```
-
-Tên file thực tế phụ thuộc ảnh đầu tiên được xuất.
-
-Có thể hiển thị năm dự đoán cao nhất:
+Có thể thay đổi số lượng kết quả hiển thị:
 
 ```powershell
 python predict.py --image "duong_dan_anh.png" --top-k 5
 ```
 
-## 8. Các file được tạo sau khi train
+Ảnh được resize về `32 x 32`, chuyển sang tensor và normalize giống dữ liệu đánh giá.
+
+## 9. Các file được tạo sau khi train và evaluate
 
 ```text
 outputs/
-├── best_lenet_cifar10.pt
+├── best_vgg16_cifar10.pt
 ├── training_history.csv
 ├── loss_history.png
 ├── accuracy_history.png
@@ -147,43 +132,30 @@ outputs/
 └── confusion_matrix.png
 ```
 
-## 9. Cấu trúc LeNet trong project
+## 10. Cấu trúc VGG16-BN cho CIFAR-10
+
+VGG16-BN gồm 5 convolution block. Mỗi convolution dùng `3 x 3`, kèm BatchNorm và ReLU; cuối mỗi block là MaxPool `2 x 2`.
 
 ```text
 Input: 3 × 32 × 32
   ↓
-Conv2d 3→6, kernel 5×5
+Block 1: Conv-BN-ReLU 64, Conv-BN-ReLU 64, MaxPool
   ↓
-ReLU
+Block 2: Conv-BN-ReLU 128, Conv-BN-ReLU 128, MaxPool
   ↓
-MaxPool2d 2×2
+Block 3: Conv-BN-ReLU 256 × 3, MaxPool
   ↓
-6 × 14 × 14
+Block 4: Conv-BN-ReLU 512 × 3, MaxPool
   ↓
-Conv2d 6→16, kernel 5×5
+Block 5: Conv-BN-ReLU 512 × 3, MaxPool
   ↓
-ReLU
+Classifier với dropout 0.5
   ↓
-MaxPool2d 2×2
-  ↓
-16 × 5 × 5
-  ↓
-Flatten = 400
-  ↓
-Linear 400→120
-  ↓
-ReLU
-  ↓
-Linear 120→84
-  ↓
-ReLU
-  ↓
-Linear 84→10
+10 logits
 ```
 
-## 10. Ghi chú
+## 11. Ghi chú
 
-- Không thêm `Softmax` ở lớp cuối khi train vì project dùng `CrossEntropyLoss`.
+- Không thêm `Softmax` vào đầu ra mô hình khi train vì project dùng `CrossEntropyLoss`.
 - `Softmax` chỉ được dùng trong `predict.py` để hiển thị xác suất.
-- LeNet là mô hình nhỏ, phù hợp để học CNN nhưng không phải kiến trúc mạnh nhất cho CIFAR-10.
-- Khi chạy trên Windows và gặp lỗi DataLoader, đổi `NUM_WORKERS = 0` trong `config.py`.
+- Khi chạy trên Windows và gặp lỗi DataLoader, có thể đổi `NUM_WORKERS = 0` trong `config.py`.
