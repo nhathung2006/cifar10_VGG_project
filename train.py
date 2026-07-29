@@ -19,7 +19,7 @@ from config import (
 )
 from data import create_dataloaders
 from engine import evaluate, train_one_epoch
-from model import LeNetCIFAR10
+from model import VGG16CIFAR10
 from utils import (
     ensure_directories,
     get_device,
@@ -45,7 +45,10 @@ def main() -> None:
     print(f"Số ảnh validation: {len(val_loader.dataset)}")
     print(f"Số ảnh test      : {len(test_loader.dataset)}")
 
-    model = LeNetCIFAR10(num_classes=NUM_CLASSES).to(device)
+    model = VGG16CIFAR10(
+        num_classes=NUM_CLASSES,
+        dropout=0.5,
+    ).to(device)
 
     # CrossEntropyLoss nhận trực tiếp logits, không thêm Softmax trong model.
     criterion = nn.CrossEntropyLoss()
