@@ -10,6 +10,7 @@ from config import (
     BATCH_SIZE,
     CIFAR10_MEAN,
     CIFAR10_STD,
+    CLASS_NAMES,
     DATA_DIR,
     NUM_WORKERS,
     SEED,
@@ -17,43 +18,70 @@ from config import (
 )
 
 
-def _validate_local_cifar10() -> None:
+def _validate_imagefolder_structure() -> None:
     """
-    Kiểm tra bộ CIFAR-10 dạng gốc trước khi tạo bất kỳ Dataset nào.
+    Kiểm tra thư mục ImageFolder và mapping nhãn của train/test.
     """
-    cifar10_dir = DATA_DIR / "cifar-10-batches-py"
-    required_files = (
-        "batches.meta",
-        "data_batch_1",
-        "data_batch_2",
-        "data_batch_3",
-        "data_batch_4",
-        "data_batch_5",
-        "test_batch",
-    )
-    missing_files = [
-        cifar10_dir / filename
-        for filename in required_files
-        if not (cifar10_dir / filename).is_file()
-    ]
+    train_dir = DATA_DIR / "train"
+    test_dir = DATA_DIR / "test"
+    expected_classes = list(CLASS_NAMES)
 
-    if missing_files:
-        missing_paths = "\n".join(f"  - {path}" for path in missing_files)
-        raise FileNotFoundError(
-            "Không tìm thấy đầy đủ dữ liệu CIFAR-10 cục bộ.\n"
-            f"Thư mục chương trình đang tìm: {cifar10_dir}\n"
-            f"File còn thiếu:\n{missing_paths}\n"
-            "Cấu trúc thư mục mong đợi:\n"
-            f"{DATA_DIR}/\n"
-            "└── cifar-10-batches-py/\n"
-            "    ├── batches.meta\n"
-            "    ├── data_batch_1\n"
-            "    ├── data_batch_2\n"
-            "    ├── data_batch_3\n"
-            "    ├── data_batch_4\n"
-            "    ├── data_batch_5\n"
-            "    └── test_batch"
+    for split_name, split_dir in (
+        ("train", train_dir),
+        ("test", test_dir),
+    ):
+        if not split_dir.is_dir():
+            raise FileNotFoundError(
+                f"Không tìm thấy thư mục {split_name}: {split_dir}"
+            )
+
+        actual_classes = sorted(
+            path.name
+            for path in split_dir.iterdir()
+            if path.is_dir()
         )
+        if actual_classes != expected_classes:
+            missing_classes = [
+                name for name in expected_classes if name not in actual_classes
+            ]
+            extra_classes = [
+                name for name in actual_classes if name not in expected_classes
+            ]
+            raise ValueError(
+                f"Sai lớp trong thư mục {split_name}: {split_dir}. "
+                f"Thiếu: {missing_classes or 'không có'}. "
+                f"Thừa: {extra_classes or 'không có'}. "
+                f"Đang có: {actual_classes}. "
+                f"Mong đợi: {expected_classes}."
+            )
+
+    train_dataset = datasets.ImageFolder(root=train_dir)
+    test_dataset = datasets.ImageFolder(root=test_dir)
+    expected_mapping = {
+        class_name: class_index
+        for class_index, class_name in enumerate(expected_classes)
+    }
+
+    if train_dataset.classes != test_dataset.classes:
+        raise ValueError(
+            "Danh sách lớp của train và test không giống nhau: "
+            f"train={train_dataset.classes}, test={test_dataset.classes}."
+        )
+
+    for split_name, dataset in (
+        ("train", train_dataset),
+        ("test", test_dataset),
+    ):
+        if dataset.classes != expected_classes:
+            raise ValueError(
+                f"Thứ tự lớp của {split_name} không đúng: "
+                f"{dataset.classes}. Mong đợi: {expected_classes}."
+            )
+        if dataset.class_to_idx != expected_mapping:
+            raise ValueError(
+                f"Mapping nhãn của {split_name} không đúng: "
+                f"{dataset.class_to_idx}. Mong đợi: {expected_mapping}."
+            )
 
 
 def get_train_transform() -> transforms.Compose:
@@ -143,19 +171,15 @@ def create_dataloaders(
     device: torch.device,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
-    Tải CIFAR-10 và tạo ba DataLoader:
+    Đọc CIFAR-10 dạng ImageFolder và tạo ba DataLoader:
     - train
     - validation
     - test
     """
-    _validate_local_cifar10()
+    _validate_imagefolder_structure()
 
     # Dataset này dùng để lấy nhãn phục vụ chia dữ liệu.
-    split_dataset = datasets.CIFAR10(
-        root=DATA_DIR,
-        train=True,
-        download=False,
-    )
+    split_dataset = datasets.ImageFolder(root=DATA_DIR / "train")
 
     train_indices, val_indices = create_stratified_indices(
         targets=split_dataset.targets,
@@ -164,24 +188,18 @@ def create_dataloaders(
     )
 
     # Tạo hai instance riêng để train và validation dùng transform khác nhau.
-    full_train_dataset = datasets.CIFAR10(
-        root=DATA_DIR,
-        train=True,
-        download=False,
+    full_train_dataset = datasets.ImageFolder(
+        root=DATA_DIR / "train",
         transform=get_train_transform(),
     )
 
-    full_val_dataset = datasets.CIFAR10(
-        root=DATA_DIR,
-        train=True,
-        download=False,
+    full_val_dataset = datasets.ImageFolder(
+        root=DATA_DIR / "train",
         transform=get_eval_transform(),
     )
 
-    test_dataset = datasets.CIFAR10(
-        root=DATA_DIR,
-        train=False,
-        download=False,
+    test_dataset = datasets.ImageFolder(
+        root=DATA_DIR / "test",
         transform=get_eval_transform(),
     )
 
@@ -225,12 +243,10 @@ def create_test_loader(device: torch.device) -> DataLoader:
     """
     Chỉ tạo test loader, dùng cho evaluate.py.
     """
-    _validate_local_cifar10()
+    _validate_imagefolder_structure()
 
-    test_dataset = datasets.CIFAR10(
-        root=DATA_DIR,
-        train=False,
-        download=False,
+    test_dataset = datasets.ImageFolder(
+        root=DATA_DIR / "test",
         transform=get_eval_transform(),
     )
 

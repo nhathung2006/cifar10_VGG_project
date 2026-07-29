@@ -2,7 +2,7 @@ from pathlib import Path
 
 # Đường dẫn
 PROJECT_ROOT = Path(__file__).resolve().parent
-DATA_DIR = PROJECT_ROOT / "data"
+DATA_DIR = Path("/kaggle/working/cifar10_data/cifar10")
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 CHECKPOINT_PATH = OUTPUT_DIR / "best_vgg16_cifar10.pt"
 HISTORY_CSV_PATH = OUTPUT_DIR / "training_history.csv"
