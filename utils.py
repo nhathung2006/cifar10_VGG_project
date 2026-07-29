@@ -180,8 +180,12 @@ def save_confusion_matrix(
 ) -> None:
     matrix = confusion_matrix.numpy()
 
-    plt.figure(figsize=(10, 8))
-    plt.imshow(matrix)
+    figure = plt.figure(figsize=(10, 8), facecolor="white")
+    image = plt.imshow(
+        matrix,
+        cmap="Blues",
+        interpolation="nearest",
+    )
     plt.title("Confusion matrix - CIFAR-10")
     plt.xlabel("Predicted label")
     plt.ylabel("True label")
@@ -210,9 +214,13 @@ def save_confusion_matrix(
                 fontsize=8,
             )
 
-    plt.colorbar()
+    plt.colorbar(image)
     plt.tight_layout()
-    plt.savefig(CONFUSION_MATRIX_PATH, dpi=170)
+    figure.savefig(
+        CONFUSION_MATRIX_PATH,
+        dpi=170,
+        facecolor="white",
+    )
     plt.close()
 
 
