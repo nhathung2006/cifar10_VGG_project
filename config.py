@@ -4,7 +4,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
-CHECKPOINT_PATH = OUTPUT_DIR / "best_lenet_cifar10.pt"
+CHECKPOINT_PATH = OUTPUT_DIR / "best_vgg16_cifar10.pt"
 HISTORY_CSV_PATH = OUTPUT_DIR / "training_history.csv"
 LOSS_PLOT_PATH = OUTPUT_DIR / "loss_history.png"
 ACCURACY_PLOT_PATH = OUTPUT_DIR / "accuracy_history.png"
