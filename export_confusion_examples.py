@@ -92,7 +92,7 @@ def main() -> None:
                 output_path = output_dir / f"{pair_counts[pair] + 1:02d}.png"
 
                 with Image.open(source_path) as image:
-                    image.convert("RGB").save(output_path)
+                    image.convert("RGB").resize((32, 32)).save(output_path)
 
                 pair_counts[pair] += 1
                 sample_index += 1
