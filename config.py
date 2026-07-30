@@ -37,7 +37,7 @@ CIFAR10_MEAN = (0.5, 0.5, 0.5)
 CIFAR10_STD = (0.5, 0.5, 0.5)
 
 # Cấu hình huấn luyện
-EPOCHS = 30
+EPOCHS = 80
 LEARNING_RATE = 1e-3
 WEIGHT_DECAY = 1e-4
 
