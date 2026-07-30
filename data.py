@@ -85,17 +85,17 @@ def _validate_imagefolder_structure() -> None:
 
 
 def get_train_transform() -> transforms.Compose:
-    """
-    Data augmentation chỉ áp dụng cho tập train.
-    """
-    return transforms.Compose(
-        [
-            transforms.RandomCrop(size=32, padding=4),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
-        ]
-    )
+    return transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandAugment(num_ops=2, magnitude=7),
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD),
+        transforms.RandomErasing(
+            p=0.25,
+            scale=(0.02, 0.15),
+        ),
+    ])
 
 
 def get_eval_transform() -> transforms.Compose:
