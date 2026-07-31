@@ -47,7 +47,6 @@ def main() -> None:
 
     model = VGG16CIFAR10(
         num_classes=NUM_CLASSES,
-        dropout=0.5,
     ).to(device)
 
     # CrossEntropyLoss nhận trực tiếp logits, không thêm Softmax trong model.
