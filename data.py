@@ -199,7 +199,7 @@ def create_dataloaders(
     )
 
     test_dataset = datasets.ImageFolder(
-        root=DATA_DIR / "test",
+        root="/kaggle/working/cifar10_data/cifar10/test",
         transform=get_eval_transform(),
     )
 
