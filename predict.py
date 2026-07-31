@@ -40,7 +40,6 @@ def predict(image_path: Path, top_k: int) -> None:
 
     model = VGG16CIFAR10(
         num_classes=NUM_CLASSES,
-        #dropout=0.5,
     ).to(device)
     load_checkpoint(
         path=CHECKPOINT_PATH,

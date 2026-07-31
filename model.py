@@ -12,7 +12,6 @@ class VGG16CIFAR10(nn.Module):
     def __init__(
         self,
         num_classes: int = 10,
-        #dropout: float = 0.5,
     ) -> None:
         super().__init__()
 
@@ -56,7 +55,6 @@ class VGG16CIFAR10(nn.Module):
 
 
 if __name__ == "__main__":
-    #dropout=0.5
     model = VGG16CIFAR10(num_classes=10, )
     sample = torch.randn(8, 3, 32, 32)
     logits = model(sample)
