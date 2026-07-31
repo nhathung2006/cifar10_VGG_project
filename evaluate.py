@@ -28,7 +28,7 @@ def main() -> None:
 
     model = VGG16CIFAR10(
         num_classes=NUM_CLASSES,
-        dropout=0.5,
+        #dropout=0.5,
     ).to(device)
     checkpoint = load_checkpoint(
         path=CHECKPOINT_PATH,

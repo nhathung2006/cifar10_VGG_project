@@ -33,8 +33,8 @@ CLASS_NAMES = (
 )
 
 # Chuẩn hóa theo cách đơn giản, phổ biến trong tutorial CIFAR-10
-CIFAR10_MEAN = (0.5, 0.5, 0.5)
-CIFAR10_STD = (0.5, 0.5, 0.5)
+CIFAR10_MEAN = (0.4914, 0.4822, 0.4465)
+CIFAR10_STD = (0.2470, 0.2435, 0.2616)
 
 # Cấu hình huấn luyện
 EPOCHS = 80
@@ -47,4 +47,4 @@ LR_PATIENCE = 3
 MIN_LEARNING_RATE = 1e-6
 
 # Dừng sớm khi validation loss không cải thiện
-EARLY_STOPPING_PATIENCE = 8
+EARLY_STOPPING_PATIENCE = 17

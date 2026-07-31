@@ -12,7 +12,7 @@ class VGG16CIFAR10(nn.Module):
     def __init__(
         self,
         num_classes: int = 10,
-        dropout: float = 0.5,
+        #dropout: float = 0.5,
     ) -> None:
         super().__init__()
 
@@ -46,12 +46,6 @@ class VGG16CIFAR10(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout),
-            nn.Linear(512, 512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout),
             nn.Linear(512, num_classes),
         )
 
@@ -62,7 +56,8 @@ class VGG16CIFAR10(nn.Module):
 
 
 if __name__ == "__main__":
-    model = VGG16CIFAR10(num_classes=10, dropout=0.5)
+    #dropout=0.5
+    model = VGG16CIFAR10(num_classes=10, )
     sample = torch.randn(8, 3, 32, 32)
     logits = model(sample)
 
