@@ -13,6 +13,7 @@ from config import (
     LR_PATIENCE,
     MIN_LEARNING_RATE,
     NUM_CLASSES,
+    OUTPUT_DIR,
     SEED,
     TEST_METRICS_PATH,
     WEIGHT_DECAY,
@@ -30,11 +31,19 @@ from utils import (
     save_json,
     set_seed,
 )
+from resource_metrics import (
+    build_resource_metrics,
+    check_thop_available,
+    get_peak_vram_mb,
+    now,
+    synchronize_cuda,
+)
 
 
 def main() -> None:
     ensure_directories()
     set_seed(SEED)
+    check_thop_available()
 
     device = get_device()
     print(f"Thiết bị đang sử dụng: {device}")
@@ -65,6 +74,11 @@ def main() -> None:
         patience=LR_PATIENCE,
         min_lr=MIN_LEARNING_RATE,
     )
+
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    synchronize_cuda(device)
+    training_start = now()
 
     history: list[dict[str, float]] = []
     best_val_loss = float("inf")
@@ -138,6 +152,10 @@ def main() -> None:
             print("Dừng sớm để hạn chế overfitting.")
             break
 
+    synchronize_cuda(device)
+    training_time_seconds = now() - training_start
+    peak_vram_mb = get_peak_vram_mb(device)
+
     save_history_csv(history)
     plot_history(history)
 
@@ -148,12 +166,16 @@ def main() -> None:
         device=device,
     )
 
+    synchronize_cuda(device)
+    inference_start = now()
     test_loss, test_accuracy = evaluate(
         model=model,
         data_loader=test_loader,
         criterion=criterion,
         device=device,
     )
+    synchronize_cuda(device)
+    inference_time_seconds = now() - inference_start
 
     test_metrics = {
         "best_epoch": int(checkpoint["epoch"]),
@@ -165,11 +187,47 @@ def main() -> None:
     }
     save_json(TEST_METRICS_PATH, test_metrics)
 
+    resource_metrics = build_resource_metrics(
+        model=model,
+        training_time_seconds=training_time_seconds,
+        inference_time_seconds=inference_time_seconds,
+        peak_vram_mb=peak_vram_mb,
+        best_epoch=int(checkpoint["epoch"]),
+        test_loss=float(test_loss),
+        test_accuracy=float(test_accuracy),
+    )
+    save_json(OUTPUT_DIR / "resource_metrics.json", resource_metrics)
+
     print("\n===== KẾT QUẢ CUỐI CÙNG =====")
     print(f"Best epoch : {checkpoint['epoch']}")
     print(f"Test loss  : {test_loss:.4f}")
     print(f"Test acc   : {test_accuracy:.2f}%")
-    print(f"Checkpoint : {CHECKPOINT_PATH}")
+
+    print("\n===== THÔNG SỐ TÀI NGUYÊN =====")
+    print(
+        "\n1. Parameters     : "
+        f"{resource_metrics['parameters']:,} "
+        f"(trainable: {resource_metrics['trainable_parameters']:,})"
+    )
+    print(
+        "2. Training time  : "
+        f"{resource_metrics['training_time_seconds']:.3f} giây"
+    )
+    print(
+        "3. Inference time : "
+        f"{resource_metrics['inference_time_seconds']:.3f} giây"
+    )
+    peak_vram = resource_metrics["peak_vram_mb"]
+    if peak_vram is None:
+        print("4. PEAK VRAM      : N/A (không chạy CUDA)")
+    else:
+        print(f"4. PEAK VRAM      : {peak_vram:.2f} MB")
+    print(f"5. MACs           : {resource_metrics['macs'] / 1e6:.2f} M")
+    print(f"6. FLOPs          : {resource_metrics['flops'] / 1e6:.2f} M")
+    print(
+        "7. Model size     : "
+        f"{resource_metrics['model_size_mb']:.2f} MB"
+    )
     print("Đã lưu biểu đồ và kết quả trong thư mục outputs/.")
 
 
